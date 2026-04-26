@@ -6,7 +6,7 @@ A data analysis project exploring liver patient records to uncover patterns, ris
 
 ## 🔗 Live Dashboard
 
-👉 [View Live Dashboard](https://gauravkashyap-lab.github.io/LiverPatientAnalysis/)
+👉 https://gauravkashyap-lab.github.io/LiverPatient-Analysis/
 
 ---
 
