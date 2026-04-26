@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liver Patient Analytics Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F6FB;
+    --surface: #FFFFFF;
+    --surface-2: #F0F3FA;
+    --border: #E2E8F4;
+    --text-primary: #111827;
+    --text-secondary: #5A6A85;
+    --text-muted: #94A3B8;
+    --accent: #2563EB;
+    --accent-light: #EFF6FF;
+    --danger: #DC2626;
+    --danger-light: #FEF2F2;
+    --success: #059669;
+    --success-light: #ECFDF5;
+    --warning: #D97706;
+    --warning-light: #FFFBEB;
+    --purple: #7C3AED;
+    --purple-light: #F5F3FF;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.04);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 220px; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 100; padding: 0;
+  }
+
+  .sidebar-logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, #2563EB, #7C3AED);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .logo-icon svg { width: 18px; height: 18px; fill: white; }
+
+  .logo-text { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.2px; }
+  .logo-sub { font-size: 10px; color: var(--text-muted); font-weight: 400; }
+
+  .sidebar-nav { padding: 16px 12px; flex: 1; }
+
+  .nav-label {
+    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    padding: 0 8px; margin-bottom: 6px; margin-top: 12px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: var(--radius-sm);
+    color: var(--text-secondary); cursor: pointer;
+    font-size: 13px; font-weight: 500;
+    transition: all 0.15s;
+    text-decoration: none; margin-bottom: 2px;
+  }
+
+  .nav-item:hover { background: var(--surface-2); color: var(--text-primary); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent); }
+
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  .sidebar-footer {
+    padding: 16px; border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text-muted);
+  }
+
+  .data-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--success-light); color: var(--success);
+    font-size: 10px; font-weight: 600; padding: 3px 8px;
+    border-radius: 20px; margin-top: 4px;
+  }
+
+  /* MAIN */
+  .main {
+    margin-left: 220px;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+
+  .topbar-left h1 { font-size: 17px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.3px; }
+  .topbar-left p { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+  /* FILTERS */
+  .filters-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 28px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+
+  .filter-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-right: 4px; }
+
+  .filter-select, .filter-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 500;
+    padding: 6px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.15s;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .filter-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+  .filter-btn-group { display: flex; }
+
+  .filter-btn {
+    border-radius: 0; margin-left: -1px;
+    background: var(--surface);
+  }
+
+  .filter-btn:first-child { border-radius: 8px 0 0 8px; }
+  .filter-btn:last-child { border-radius: 0 8px 8px 0; }
+  .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); z-index: 1; }
+  .filter-btn:hover:not(.active) { background: var(--surface-2); z-index: 1; }
+
+  .filter-sep { width: 1px; height: 20px; background: var(--border); }
+
+  .reset-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 500;
+    padding: 6px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer; transition: all 0.15s; outline: none;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .results-count {
+    margin-left: auto;
+    font-size: 12px; color: var(--text-muted);
+    background: var(--surface-2);
+    padding: 4px 10px; border-radius: 20px;
+  }
+
+  .results-count strong { color: var(--text-primary); }
+
+  /* CONTENT */
+  .content { padding: 24px 28px; flex: 1; }
+
+  /* KPI GRID */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+
+  .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+  .kpi-accent-bar {
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .kpi-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+
+  .kpi-value { font-size: 28px; font-weight: 700; color: var(--text-primary); letter-spacing: -1px; line-height: 1; }
+
+  .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+
+  .kpi-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 600; padding: 2px 7px;
+    border-radius: 20px; margin-top: 6px;
+  }
+
+  /* CHART GRID */
+  .chart-grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 16px;
+  }
+
+  .chart-grid-3 {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px; margin-bottom: 16px;
+  }
+
+  .chart-grid-full { margin-bottom: 16px; }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .chart-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .chart-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .chart-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .chart-badge {
+    font-size: 10px; font-weight: 600; padding: 3px 8px;
+    border-radius: 20px; white-space: nowrap;
+  }
+
+  .chart-wrap { position: relative; }
+
+  /* TABLE */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 16px;
+  }
+
+  .table-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .table-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .table-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead th {
+    background: var(--surface-2);
+    padding: 10px 14px;
+    font-size: 10px; font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+
+  tbody td {
+    padding: 10px 14px;
+    font-size: 12px; color: var(--text-primary);
+  }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600;
+    padding: 3px 9px; border-radius: 20px;
+  }
+
+  .status-pill.disease { background: var(--danger-light); color: var(--danger); }
+  .status-pill.healthy { background: var(--success-light); color: var(--success); }
+
+  .mono { font-family: 'DM Mono', monospace; font-size: 11px; }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* SECTION DIVIDER */
+  .section-title {
+    font-size: 12px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin-bottom: 14px; margin-top: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* DONUT CENTER */
+  .donut-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none;
+  }
+
+  .donut-center-value { font-size: 24px; font-weight: 700; color: var(--text-primary); letter-spacing: -1px; }
+  .donut-center-label { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+
+  .two-col-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;
+  }
+
+  .stat-item {
+    background: var(--surface-2); border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .stat-item-label { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+  .stat-item-value { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-top: 2px; }
+
+  /* PROGRESS BARS */
+  .progress-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .progress-item { }
+  .progress-info { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .progress-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+  .progress-val { font-size: 11px; color: var(--text-secondary); font-family: 'DM Mono', monospace; }
+
+  .progress-track {
+    height: 6px; background: var(--surface-2); border-radius: 10px; overflow: hidden;
+  }
+
+  .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+
+  /* TOOLTIP */
+  .tooltip-custom {
+    position: fixed; background: var(--text-primary); color: white;
+    padding: 6px 10px; border-radius: 6px; font-size: 11px;
+    pointer-events: none; z-index: 1000; display: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 1200px) {
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .chart-grid-3 { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.686 2 6 4.686 6 8c0 2.386 1.34 4.462 3.3 5.53L8 22h8l-1.3-8.47C16.66 12.462 18 10.386 18 8c0-3.314-2.686-6-6-6z"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">HepatoTrack</div>
+      <div class="logo-sub">Clinical Analytics</div>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-label">Overview</div>
+    <a class="nav-item active" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Patients
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Biomarkers
+    </a>
+
+    <div class="nav-label">Analysis</div>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Statistics
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Reports
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    <div>Dataset: ILPD India</div>
+    <div class="data-badge">
+      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="3"/></svg>
+      583 Records Loaded
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>Liver Patient Analytics</h1>
+      <p>Indian Liver Patient Dataset (ILPD) · UCI Repository</p>
+    </div>
+    <div class="topbar-right">
+      <div style="font-size:11px;color:var(--text-muted);background:var(--surface-2);padding:5px 12px;border-radius:8px;border:1px solid var(--border)">
+        Last updated: 2024
+      </div>
+      <button onclick="exportData()" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;background:var(--accent);color:white;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters-bar">
+    <span class="filter-label">Filters:</span>
+
+    <select class="filter-select" id="filterDiagnosis" onchange="applyFilters()">
+      <option value="all">All Diagnoses</option>
+      <option value="Liver Disease">Liver Disease</option>
+      <option value="No Liver Disease">No Liver Disease</option>
+    </select>
+
+    <select class="filter-select" id="filterGender" onchange="applyFilters()">
+      <option value="all">All Genders</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+    </select>
+
+    <select class="filter-select" id="filterAge" onchange="applyFilters()">
+      <option value="all">All Ages</option>
+      <option value="0-20">0–20 yrs</option>
+      <option value="21-40">21–40 yrs</option>
+      <option value="41-60">41–60 yrs</option>
+      <option value="61+">61+ yrs</option>
+    </select>
+
+    <div class="filter-sep"></div>
+
+    <span class="filter-label">TB Range:</span>
+    <div class="filter-btn-group">
+      <button class="filter-btn active" id="tbAll" onclick="setTBFilter('all',this)">All</button>
+      <button class="filter-btn" id="tbNormal" onclick="setTBFilter('normal',this)">Normal (&lt;1.2)</button>
+      <button class="filter-btn" id="tbElevated" onclick="setTBFilter('elevated',this)">Elevated (≥1.2)</button>
+    </div>
+
+    <button class="reset-btn" onclick="resetFilters()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Reset
+    </button>
+
+    <span class="results-count" id="resultsCount"><strong>583</strong> patients shown</span>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- KPIs -->
+    <div class="section-title">Key Performance Indicators</div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-accent-bar" style="background:linear-gradient(90deg,#2563EB,#3B82F6)"></div>
+        <div class="kpi-label">Total Patients</div>
+        <div class="kpi-value" id="kpiTotal">583</div>
+        <div class="kpi-sub">Unique records</div>
+        <div class="kpi-badge" style="background:#EFF6FF;color:#2563EB">ILPD Dataset</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-accent-bar" style="background:linear-gradient(90deg,#DC2626,#F87171)"></div>
+        <div class="kpi-label">Liver Disease</div>
+        <div class="kpi-value" id="kpiDisease">—</div>
+        <div class="kpi-sub" id="kpiDiseaseRate">—% prevalence</div>
+        <div class="kpi-badge" style="background:#FEF2F2;color:#DC2626" id="kpiDiseaseChange">High Risk</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-accent-bar" style="background:linear-gradient(90deg,#059669,#34D399)"></div>
+        <div class="kpi-label">No Disease</div>
+        <div class="kpi-value" id="kpiHealthy">—</div>
+        <div class="kpi-sub" id="kpiHealthyRate">—% of total</div>
+        <div class="kpi-badge" style="background:#ECFDF5;color:#059669">Normal</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-accent-bar" style="background:linear-gradient(90deg,#D97706,#FBBF24)"></div>
+        <div class="kpi-label">Avg Age</div>
+        <div class="kpi-value" id="kpiAge">—</div>
+        <div class="kpi-sub">years old</div>
+        <div class="kpi-badge" style="background:#FFFBEB;color:#D97706" id="kpiAgeRange">—</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-accent-bar" style="background:linear-gradient(90deg,#7C3AED,#A78BFA)"></div>
+        <div class="kpi-label">Avg ALB</div>
+        <div class="kpi-value" id="kpiAlb">—</div>
+        <div class="kpi-sub">g/dL Albumin</div>
+        <div class="kpi-badge" style="background:#F5F3FF;color:#7C3AED">Serum Protein</div>
+      </div>
+    </div>
+
+    <!-- ROW 1: Diagnosis + Gender + Age -->
+    <div class="section-title">Demographic Distribution</div>
+    <div class="chart-grid-3">
+
+      <!-- Donut: Diagnosis -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Diagnosis Split</div>
+            <div class="chart-subtitle">Disease vs. No Disease</div>
+          </div>
+          <span class="chart-badge" style="background:#FEF2F2;color:#DC2626">Prevalence</span>
+        </div>
+        <div class="chart-wrap" style="height:180px;position:relative;">
+          <canvas id="chartDiagnosis"></canvas>
+          <div class="donut-center" id="donutCenter">
+            <div class="donut-center-value" id="donutValue">71.4%</div>
+            <div class="donut-center-label">Disease Rate</div>
+          </div>
+        </div>
+        <div class="legend" style="margin-top:14px;">
+          <div class="legend-item"><div class="legend-dot" style="background:#DC2626"></div>Liver Disease</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#059669"></div>No Disease</div>
+        </div>
+      </div>
+
+      <!-- Donut: Gender -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Gender Distribution</div>
+            <div class="chart-subtitle">Male vs. Female patients</div>
+          </div>
+          <span class="chart-badge" style="background:#F5F3FF;color:#7C3AED">Demographics</span>
+        </div>
+        <div class="chart-wrap" style="height:180px;position:relative;">
+          <canvas id="chartGender"></canvas>
+          <div class="donut-center" id="genderDonutCenter">
+            <div class="donut-center-value" id="genderDonutValue">75.6%</div>
+            <div class="donut-center-label">Male</div>
+          </div>
+        </div>
+        <div class="legend" style="margin-top:14px;">
+          <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Male</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#EC4899"></div>Female</div>
+        </div>
+      </div>
+
+      <!-- Bar: Age Group -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Age Group Distribution</div>
+            <div class="chart-subtitle">Patients by age bracket</div>
+          </div>
+          <span class="chart-badge" style="background:#FFFBEB;color:#D97706">Age Groups</span>
+        </div>
+        <div class="chart-wrap" style="height:180px;">
+          <canvas id="chartAgeGroup"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ROW 2: Biomarkers -->
+    <div class="section-title">Biomarker Analysis</div>
+    <div class="chart-grid-2">
+
+      <!-- Grouped Bar: SGPT/SGOT by Diagnosis -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Enzyme Levels: SGPT vs SGOT</div>
+            <div class="chart-subtitle">Average by diagnosis & age group</div>
+          </div>
+          <span class="chart-badge" style="background:#EFF6FF;color:#2563EB">Liver Enzymes</span>
+        </div>
+        <div class="chart-wrap" style="height:200px;">
+          <canvas id="chartEnzymes"></canvas>
+        </div>
+      </div>
+
+      <!-- Line: Bilirubin (TB vs DB) -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Bilirubin Levels by Age Group</div>
+            <div class="chart-subtitle">Total vs Direct Bilirubin (avg)</div>
+          </div>
+          <span class="chart-badge" style="background:#FFF7ED;color:#EA580C">Bilirubin</span>
+        </div>
+        <div class="chart-wrap" style="height:200px;">
+          <canvas id="chartBilirubin"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ROW 3: Protein & Alkphos -->
+    <div class="chart-grid-2">
+
+      <!-- Horizontal bar: Avg marker values by diagnosis -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Alkaline Phosphatase by Age</div>
+            <div class="chart-subtitle">Avg Alkphos per group · Disease vs Healthy</div>
+          </div>
+          <span class="chart-badge" style="background:#F0FDF4;color:#16A34A">Alkphos</span>
+        </div>
+        <div class="chart-wrap" style="height:200px;">
+          <canvas id="chartAlkphos"></canvas>
+        </div>
+      </div>
+
+      <!-- Protein & Albumin -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Protein & Albumin Levels</div>
+            <div class="chart-subtitle">Total Protein vs Albumin · by diagnosis</div>
+          </div>
+          <span class="chart-badge" style="background:#F5F3FF;color:#7C3AED">Protein</span>
+        </div>
+        <div class="chart-wrap" style="height:200px;">
+          <canvas id="chartProtein"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ROW 4: Disease by Gender × Age -->
+    <div class="chart-grid-full">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Disease Prevalence Heatmap — Gender × Age Group</div>
+            <div class="chart-subtitle">% of patients with Liver Disease within each segment</div>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#DC2626"></div>High prevalence</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#FBBF24"></div>Medium</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#34D399"></div>Lower</div>
+          </div>
+        </div>
+        <div id="heatmapContainer" style="display:grid;grid-template-columns:80px repeat(4,1fr);gap:6px;align-items:center;margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="section-title">Patient Records</div>
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <div class="table-title">Patient Data Table</div>
+          <div class="table-sub">Showing top 20 records based on current filters</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input id="searchInput" oninput="applyFilters()" placeholder="Search patients..." style="font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;outline:none;width:180px;color:var(--text-primary);">
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Age</th>
+              <th>Gender</th>
+              <th>TB</th>
+              <th>DB</th>
+              <th>Alkphos</th>
+              <th>SGPT</th>
+              <th>SGOT</th>
+              <th>TP</th>
+              <th>ALB</th>
+              <th>A/G Ratio</th>
+              <th>Diagnosis</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ===== DATA =====
+const RAW_DATA = [{"Age":"65","Gender":"Female","TB":"0.7","DB":"0.1","Alkphos":"187","Sgpt":"16","Sgot":"18","TP":"6.8","ALB":"3.3","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"62","Gender":"Male","TB":"10.9","DB":"5.5","Alkphos":"699","Sgpt":"64","Sgot":"100","TP":"7.5","ALB":"3.2","A/G Ratio":"0.74","Selector":"Liver Disease"},{"Age":"62","Gender":"Male","TB":"7.3","DB":"4.1","Alkphos":"490","Sgpt":"60","Sgot":"68","TP":"7.0","ALB":"3.3","A/G Ratio":"0.89","Selector":"Liver Disease"},{"Age":"58","Gender":"Male","TB":"1.0","DB":"0.4","Alkphos":"182","Sgpt":"14","Sgot":"20","TP":"6.8","ALB":"3.4","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"72","Gender":"Male","TB":"3.9","DB":"2.0","Alkphos":"195","Sgpt":"27","Sgot":"59","TP":"7.3","ALB":"2.4","A/G Ratio":"0.4","Selector":"Liver Disease"},{"Age":"46","Gender":"Male","TB":"1.8","DB":"0.7","Alkphos":"208","Sgpt":"19","Sgot":"14","TP":"7.6","ALB":"4.4","A/G Ratio":"1.3","Selector":"Liver Disease"},{"Age":"26","Gender":"Female","TB":"0.9","DB":"0.2","Alkphos":"154","Sgpt":"16","Sgot":"12","TP":"7.0","ALB":"3.5","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"29","Gender":"Female","TB":"0.9","DB":"0.3","Alkphos":"202","Sgpt":"14","Sgot":"11","TP":"6.7","ALB":"3.6","A/G Ratio":"1.1","Selector":"Liver Disease"},{"Age":"17","Gender":"Male","TB":"0.9","DB":"0.3","Alkphos":"202","Sgpt":"22","Sgot":"19","TP":"7.4","ALB":"4.1","A/G Ratio":"1.2","Selector":"No Liver Disease"},{"Age":"55","Gender":"Male","TB":"0.7","DB":"0.2","Alkphos":"290","Sgpt":"53","Sgot":"58","TP":"6.8","ALB":"3.4","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"57","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"210","Sgpt":"51","Sgot":"59","TP":"5.9","ALB":"2.7","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"72","Gender":"Male","TB":"2.7","DB":"1.3","Alkphos":"260","Sgpt":"31","Sgot":"56","TP":"7.4","ALB":"3.0","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"64","Gender":"Male","TB":"0.9","DB":"0.3","Alkphos":"310","Sgpt":"61","Sgot":"58","TP":"7.0","ALB":"3.4","A/G Ratio":"0.9","Selector":"No Liver Disease"},{"Age":"74","Gender":"Female","TB":"1.1","DB":"0.4","Alkphos":"214","Sgpt":"22","Sgot":"30","TP":"8.1","ALB":"4.1","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"61","Gender":"Male","TB":"0.7","DB":"0.2","Alkphos":"145","Sgpt":"53","Sgot":"41","TP":"5.8","ALB":"2.7","A/G Ratio":"0.87","Selector":"Liver Disease"},{"Age":"25","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"183","Sgpt":"91","Sgot":"53","TP":"5.5","ALB":"2.3","A/G Ratio":"0.7","Selector":"No Liver Disease"},{"Age":"38","Gender":"Male","TB":"1.8","DB":"0.8","Alkphos":"342","Sgpt":"168","Sgot":"441","TP":"7.6","ALB":"4.4","A/G Ratio":"1.3","Selector":"Liver Disease"},{"Age":"33","Gender":"Male","TB":"1.6","DB":"0.5","Alkphos":"165","Sgpt":"15","Sgot":"23","TP":"7.3","ALB":"3.5","A/G Ratio":"0.92","Selector":"No Liver Disease"},{"Age":"40","Gender":"Female","TB":"0.9","DB":"0.3","Alkphos":"293","Sgpt":"232","Sgot":"245","TP":"6.8","ALB":"3.1","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"40","Gender":"Female","TB":"0.9","DB":"0.3","Alkphos":"293","Sgpt":"232","Sgot":"245","TP":"6.8","ALB":"3.1","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"51","Gender":"Male","TB":"2.2","DB":"1.0","Alkphos":"610","Sgpt":"17","Sgot":"28","TP":"7.3","ALB":"2.6","A/G Ratio":"0.55","Selector":"Liver Disease"},{"Age":"51","Gender":"Male","TB":"2.9","DB":"1.3","Alkphos":"482","Sgpt":"22","Sgot":"34","TP":"7.0","ALB":"2.4","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"62","Gender":"Male","TB":"6.8","DB":"3.0","Alkphos":"542","Sgpt":"116","Sgot":"66","TP":"6.4","ALB":"3.1","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"40","Gender":"Male","TB":"1.9","DB":"1.0","Alkphos":"231","Sgpt":"16","Sgot":"55","TP":"4.3","ALB":"1.6","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"63","Gender":"Male","TB":"0.9","DB":"0.2","Alkphos":"194","Sgpt":"52","Sgot":"45","TP":"6.0","ALB":"3.9","A/G Ratio":"1.85","Selector":"No Liver Disease"},{"Age":"34","Gender":"Male","TB":"4.1","DB":"2.0","Alkphos":"289","Sgpt":"875","Sgot":"731","TP":"5.0","ALB":"2.7","A/G Ratio":"1.1","Selector":"Liver Disease"},{"Age":"34","Gender":"Male","TB":"4.1","DB":"2.0","Alkphos":"289","Sgpt":"875","Sgot":"731","TP":"5.0","ALB":"2.7","A/G Ratio":"1.1","Selector":"Liver Disease"},{"Age":"34","Gender":"Male","TB":"6.2","DB":"3.0","Alkphos":"240","Sgpt":"1680","Sgot":"850","TP":"7.2","ALB":"4.0","A/G Ratio":"1.2","Selector":"Liver Disease"},{"Age":"20","Gender":"Male","TB":"1.1","DB":"0.5","Alkphos":"128","Sgpt":"20","Sgot":"30","TP":"3.9","ALB":"1.9","A/G Ratio":"0.95","Selector":"No Liver Disease"},{"Age":"84","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"188","Sgpt":"13","Sgot":"21","TP":"6.0","ALB":"3.2","A/G Ratio":"1.1","Selector":"No Liver Disease"},{"Age":"57","Gender":"Male","TB":"4.0","DB":"1.9","Alkphos":"190","Sgpt":"45","Sgot":"111","TP":"5.2","ALB":"1.5","A/G Ratio":"0.4","Selector":"Liver Disease"},{"Age":"52","Gender":"Male","TB":"0.9","DB":"0.2","Alkphos":"156","Sgpt":"35","Sgot":"44","TP":"4.9","ALB":"2.9","A/G Ratio":"1.4","Selector":"Liver Disease"},{"Age":"57","Gender":"Male","TB":"1.0","DB":"0.3","Alkphos":"187","Sgpt":"19","Sgot":"23","TP":"5.2","ALB":"2.9","A/G Ratio":"1.2","Selector":"No Liver Disease"},{"Age":"38","Gender":"Female","TB":"2.6","DB":"1.2","Alkphos":"410","Sgpt":"59","Sgot":"57","TP":"5.6","ALB":"3.0","A/G Ratio":"0.8","Selector":"No Liver Disease"},{"Age":"38","Gender":"Female","TB":"2.6","DB":"1.2","Alkphos":"410","Sgpt":"59","Sgot":"57","TP":"5.6","ALB":"3.0","A/G Ratio":"0.8","Selector":"No Liver Disease"},{"Age":"30","Gender":"Male","TB":"1.3","DB":"0.4","Alkphos":"482","Sgpt":"102","Sgot":"80","TP":"6.9","ALB":"3.3","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"17","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"145","Sgpt":"18","Sgot":"36","TP":"7.2","ALB":"3.9","A/G Ratio":"1.18","Selector":"No Liver Disease"},{"Age":"46","Gender":"Female","TB":"14.2","DB":"7.8","Alkphos":"374","Sgpt":"38","Sgot":"77","TP":"4.3","ALB":"2.0","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"48","Gender":"Male","TB":"1.4","DB":"0.6","Alkphos":"263","Sgpt":"38","Sgot":"66","TP":"5.8","ALB":"2.2","A/G Ratio":"0.61","Selector":"Liver Disease"},{"Age":"47","Gender":"Male","TB":"2.7","DB":"1.3","Alkphos":"275","Sgpt":"123","Sgot":"73","TP":"6.2","ALB":"3.3","A/G Ratio":"1.1","Selector":"Liver Disease"},{"Age":"45","Gender":"Male","TB":"2.4","DB":"1.1","Alkphos":"168","Sgpt":"33","Sgot":"50","TP":"5.1","ALB":"2.6","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"62","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"160","Sgpt":"42","Sgot":"110","TP":"4.9","ALB":"2.6","A/G Ratio":"1.1","Selector":"No Liver Disease"},{"Age":"42","Gender":"Male","TB":"6.8","DB":"3.2","Alkphos":"630","Sgpt":"25","Sgot":"47","TP":"6.1","ALB":"2.3","A/G Ratio":"0.6","Selector":"No Liver Disease"},{"Age":"50","Gender":"Male","TB":"2.6","DB":"1.2","Alkphos":"415","Sgpt":"407","Sgot":"576","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"85","Gender":"Female","TB":"1.0","DB":"0.3","Alkphos":"208","Sgpt":"17","Sgot":"15","TP":"7.0","ALB":"3.6","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"35","Gender":"Male","TB":"1.8","DB":"0.6","Alkphos":"275","Sgpt":"48","Sgot":"178","TP":"6.5","ALB":"3.2","A/G Ratio":"0.9","Selector":"No Liver Disease"},{"Age":"21","Gender":"Male","TB":"3.9","DB":"1.8","Alkphos":"150","Sgpt":"36","Sgot":"27","TP":"6.8","ALB":"3.9","A/G Ratio":"1.34","Selector":"Liver Disease"},{"Age":"40","Gender":"Male","TB":"1.1","DB":"0.3","Alkphos":"230","Sgpt":"1630","Sgot":"960","TP":"4.9","ALB":"2.8","A/G Ratio":"1.3","Selector":"Liver Disease"},{"Age":"32","Gender":"Female","TB":"0.6","DB":"0.1","Alkphos":"176","Sgpt":"39","Sgot":"28","TP":"6.0","ALB":"3.0","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"55","Gender":"Male","TB":"18.4","DB":"8.8","Alkphos":"206","Sgpt":"64","Sgot":"178","TP":"6.2","ALB":"1.8","A/G Ratio":"0.4","Selector":"Liver Disease"},{"Age":"45","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"170","Sgpt":"21","Sgot":"14","TP":"5.7","ALB":"2.5","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"34","Gender":"Female","TB":"0.6","DB":"0.1","Alkphos":"161","Sgpt":"15","Sgot":"19","TP":"6.6","ALB":"3.4","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"38","Gender":"Male","TB":"3.1","DB":"1.6","Alkphos":"253","Sgpt":"80","Sgot":"406","TP":"6.8","ALB":"3.9","A/G Ratio":"1.3","Selector":"Liver Disease"},{"Age":"38","Gender":"Male","TB":"1.1","DB":"0.3","Alkphos":"198","Sgpt":"86","Sgot":"150","TP":"6.3","ALB":"3.5","A/G Ratio":"1.2","Selector":"Liver Disease"},{"Age":"42","Gender":"Male","TB":"8.9","DB":"4.5","Alkphos":"272","Sgpt":"31","Sgot":"61","TP":"5.8","ALB":"2.0","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"42","Gender":"Male","TB":"8.9","DB":"4.5","Alkphos":"272","Sgpt":"31","Sgot":"61","TP":"5.8","ALB":"2.0","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"33","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"198","Sgpt":"26","Sgot":"23","TP":"8.0","ALB":"4.0","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"48","Gender":"Female","TB":"0.9","DB":"0.2","Alkphos":"175","Sgpt":"24","Sgot":"54","TP":"5.5","ALB":"2.7","A/G Ratio":"0.9","Selector":"No Liver Disease"},{"Age":"51","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"367","Sgpt":"42","Sgot":"18","TP":"5.2","ALB":"2.0","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"64","Gender":"Male","TB":"1.1","DB":"0.5","Alkphos":"145","Sgpt":"20","Sgot":"24","TP":"5.5","ALB":"3.2","A/G Ratio":"1.39","Selector":"No Liver Disease"},{"Age":"31","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"158","Sgpt":"21","Sgot":"16","TP":"6.0","ALB":"3.0","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"58","Gender":"Male","TB":"1.0","DB":"0.5","Alkphos":"158","Sgpt":"37","Sgot":"43","TP":"7.2","ALB":"3.6","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"58","Gender":"Male","TB":"1.0","DB":"0.5","Alkphos":"158","Sgpt":"37","Sgot":"43","TP":"7.2","ALB":"3.6","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"57","Gender":"Male","TB":"0.7","DB":"0.2","Alkphos":"208","Sgpt":"35","Sgot":"97","TP":"5.1","ALB":"2.1","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"57","Gender":"Male","TB":"1.3","DB":"0.4","Alkphos":"259","Sgpt":"40","Sgot":"86","TP":"6.5","ALB":"2.5","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"57","Gender":"Male","TB":"1.4","DB":"0.7","Alkphos":"470","Sgpt":"62","Sgot":"88","TP":"5.6","ALB":"2.5","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"54","Gender":"Male","TB":"2.2","DB":"1.2","Alkphos":"195","Sgpt":"55","Sgot":"95","TP":"6.0","ALB":"3.7","A/G Ratio":"1.6","Selector":"Liver Disease"},{"Age":"37","Gender":"Male","TB":"1.8","DB":"0.8","Alkphos":"215","Sgpt":"53","Sgot":"58","TP":"6.4","ALB":"3.8","A/G Ratio":"1.4","Selector":"Liver Disease"},{"Age":"66","Gender":"Male","TB":"0.7","DB":"0.2","Alkphos":"239","Sgpt":"27","Sgot":"26","TP":"6.3","ALB":"3.7","A/G Ratio":"1.4","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"215","Sgpt":"24","Sgot":"17","TP":"6.3","ALB":"3.0","A/G Ratio":"0.9","Selector":"No Liver Disease"},{"Age":"19","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"186","Sgpt":"166","Sgot":"397","TP":"5.5","ALB":"3.0","A/G Ratio":"1.2","Selector":"Liver Disease"},{"Age":"75","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"188","Sgpt":"20","Sgot":"29","TP":"4.4","ALB":"1.8","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"75","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"205","Sgpt":"27","Sgot":"24","TP":"4.4","ALB":"2.0","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"52","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"171","Sgpt":"22","Sgot":"16","TP":"6.6","ALB":"3.6","A/G Ratio":"1.2","Selector":"Liver Disease"},{"Age":"68","Gender":"Male","TB":"0.7","DB":"0.1","Alkphos":"145","Sgpt":"20","Sgot":"22","TP":"5.8","ALB":"2.9","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"29","Gender":"Female","TB":"0.7","DB":"0.1","Alkphos":"162","Sgpt":"52","Sgot":"41","TP":"5.2","ALB":"2.5","A/G Ratio":"0.9","Selector":"No Liver Disease"},{"Age":"31","Gender":"Male","TB":"0.9","DB":"0.2","Alkphos":"518","Sgpt":"189","Sgot":"17","TP":"5.3","ALB":"2.3","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"68","Gender":"Female","TB":"0.6","DB":"0.1","Alkphos":"1620","Sgpt":"95","Sgot":"127","TP":"4.6","ALB":"2.1","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"70","Gender":"Male","TB":"1.4","DB":"0.6","Alkphos":"146","Sgpt":"12","Sgot":"24","TP":"6.2","ALB":"3.8","A/G Ratio":"1.58","Selector":"No Liver Disease"},{"Age":"58","Gender":"Female","TB":"2.8","DB":"1.3","Alkphos":"670","Sgpt":"48","Sgot":"79","TP":"4.7","ALB":"1.6","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"58","Gender":"Female","TB":"2.4","DB":"1.1","Alkphos":"915","Sgpt":"60","Sgot":"142","TP":"4.7","ALB":"1.8","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"29","Gender":"Male","TB":"1.0","DB":"0.3","Alkphos":"75","Sgpt":"25","Sgot":"26","TP":"5.1","ALB":"2.9","A/G Ratio":"1.3","Selector":"Liver Disease"},{"Age":"49","Gender":"Male","TB":"0.7","DB":"0.1","Alkphos":"148","Sgpt":"14","Sgot":"12","TP":"5.4","ALB":"2.8","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"33","Gender":"Male","TB":"2.0","DB":"1.0","Alkphos":"258","Sgpt":"194","Sgot":"152","TP":"5.4","ALB":"3.0","A/G Ratio":"1.25","Selector":"Liver Disease"},{"Age":"32","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"237","Sgpt":"45","Sgot":"31","TP":"7.5","ALB":"4.3","A/G Ratio":"1.34","Selector":"Liver Disease"},{"Age":"14","Gender":"Male","TB":"1.4","DB":"0.5","Alkphos":"269","Sgpt":"58","Sgot":"45","TP":"6.7","ALB":"3.9","A/G Ratio":"1.4","Selector":"Liver Disease"},{"Age":"13","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"320","Sgpt":"28","Sgot":"56","TP":"7.2","ALB":"3.6","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"58","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"298","Sgpt":"33","Sgot":"59","TP":"6.2","ALB":"3.1","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"18","Gender":"Male","TB":"0.6","DB":"0.2","Alkphos":"538","Sgpt":"33","Sgot":"34","TP":"7.5","ALB":"3.2","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"4.0","DB":"1.9","Alkphos":"238","Sgpt":"119","Sgot":"350","TP":"7.1","ALB":"3.3","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"5.7","DB":"2.8","Alkphos":"214","Sgpt":"412","Sgot":"850","TP":"7.3","ALB":"3.2","A/G Ratio":"0.78","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"6.8","DB":"3.2","Alkphos":"308","Sgpt":"404","Sgot":"794","TP":"6.8","ALB":"3.0","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"8.6","DB":"4.0","Alkphos":"298","Sgpt":"412","Sgot":"850","TP":"7.4","ALB":"3.0","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"5.8","DB":"2.7","Alkphos":"204","Sgpt":"220","Sgot":"400","TP":"7.0","ALB":"3.0","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"5.2","DB":"2.4","Alkphos":"168","Sgpt":"126","Sgot":"202","TP":"6.8","ALB":"2.9","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"75","Gender":"Male","TB":"0.9","DB":"0.2","Alkphos":"282","Sgpt":"25","Sgot":"23","TP":"4.4","ALB":"2.2","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"39","Gender":"Male","TB":"3.8","DB":"1.5","Alkphos":"298","Sgpt":"102","Sgot":"630","TP":"7.1","ALB":"3.3","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"39","Gender":"Male","TB":"6.6","DB":"3.0","Alkphos":"215","Sgpt":"190","Sgot":"950","TP":"4.0","ALB":"1.7","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"18","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"265","Sgpt":"97","Sgot":"161","TP":"5.9","ALB":"3.1","A/G Ratio":"1.1","Selector":"Liver Disease"},{"Age":"18","Gender":"Male","TB":"0.7","DB":"0.1","Alkphos":"312","Sgpt":"308","Sgot":"405","TP":"6.9","ALB":"3.7","A/G Ratio":"1.1","Selector":"Liver Disease"},{"Age":"27","Gender":"Male","TB":"0.6","DB":"0.2","Alkphos":"161","Sgpt":"27","Sgot":"28","TP":"3.7","ALB":"1.6","A/G Ratio":"0.76","Selector":"No Liver Disease"},{"Age":"27","Gender":"Male","TB":"0.7","DB":"0.2","Alkphos":"243","Sgpt":"21","Sgot":"23","TP":"5.3","ALB":"2.3","A/G Ratio":"0.7","Selector":"No Liver Disease"},{"Age":"17","Gender":"Male","TB":"0.9","DB":"0.2","Alkphos":"224","Sgpt":"36","Sgot":"45","TP":"6.9","ALB":"4.2","A/G Ratio":"1.55","Selector":"Liver Disease"},{"Age":"55","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"225","Sgpt":"14","Sgot":"23","TP":"6.1","ALB":"3.3","A/G Ratio":"1.2","Selector":"No Liver Disease"},{"Age":"63","Gender":"Male","TB":"0.5","DB":"0.1","Alkphos":"170","Sgpt":"21","Sgot":"28","TP":"5.5","ALB":"2.5","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"36","Gender":"Male","TB":"5.3","DB":"2.3","Alkphos":"145","Sgpt":"32","Sgot":"92","TP":"5.1","ALB":"2.6","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"36","Gender":"Male","TB":"5.3","DB":"2.3","Alkphos":"145","Sgpt":"32","Sgot":"92","TP":"5.1","ALB":"2.6","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"36","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"158","Sgpt":"29","Sgot":"39","TP":"6.0","ALB":"2.2","A/G Ratio":"0.5","Selector":"No Liver Disease"},{"Age":"36","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"158","Sgpt":"29","Sgot":"39","TP":"6.0","ALB":"2.2","A/G Ratio":"0.5","Selector":"No Liver Disease"},{"Age":"36","Gender":"Male","TB":"0.9","DB":"0.1","Alkphos":"486","Sgpt":"25","Sgot":"34","TP":"5.9","ALB":"2.8","A/G Ratio":"0.9","Selector":"No Liver Disease"},{"Age":"24","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"188","Sgpt":"11","Sgot":"10","TP":"5.5","ALB":"2.3","A/G Ratio":"0.71","Selector":"No Liver Disease"},{"Age":"48","Gender":"Male","TB":"3.2","DB":"1.6","Alkphos":"257","Sgpt":"33","Sgot":"116","TP":"5.7","ALB":"2.2","A/G Ratio":"0.62","Selector":"Liver Disease"},{"Age":"27","Gender":"Male","TB":"1.2","DB":"0.4","Alkphos":"179","Sgpt":"63","Sgot":"39","TP":"6.1","ALB":"3.3","A/G Ratio":"1.1","Selector":"No Liver Disease"},{"Age":"74","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"272","Sgpt":"24","Sgot":"98","TP":"5.0","ALB":"2.0","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"50","Gender":"Male","TB":"5.8","DB":"3.0","Alkphos":"661","Sgpt":"181","Sgot":"285","TP":"5.7","ALB":"2.3","A/G Ratio":"0.67","Selector":"No Liver Disease"},{"Age":"50","Gender":"Male","TB":"7.3","DB":"3.6","Alkphos":"1580","Sgpt":"88","Sgot":"64","TP":"5.6","ALB":"2.3","A/G Ratio":"0.6","Selector":"No Liver Disease"},{"Age":"48","Gender":"Male","TB":"0.7","DB":"0.1","Alkphos":"1630","Sgpt":"74","Sgot":"149","TP":"5.3","ALB":"2.0","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"32","Gender":"Male","TB":"12.7","DB":"6.2","Alkphos":"194","Sgpt":"2000","Sgot":"2946","TP":"5.7","ALB":"3.3","A/G Ratio":"1.3","Selector":"Liver Disease"},{"Age":"32","Gender":"Male","TB":"15.9","DB":"7.0","Alkphos":"280","Sgpt":"1350","Sgot":"1600","TP":"5.6","ALB":"2.8","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"32","Gender":"Male","TB":"18.0","DB":"8.2","Alkphos":"298","Sgpt":"1250","Sgot":"1050","TP":"5.4","ALB":"2.6","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"32","Gender":"Male","TB":"23.0","DB":"11.3","Alkphos":"300","Sgpt":"482","Sgot":"275","TP":"7.1","ALB":"3.5","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"32","Gender":"Male","TB":"22.7","DB":"10.2","Alkphos":"290","Sgpt":"322","Sgot":"113","TP":"6.6","ALB":"2.8","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"58","Gender":"Male","TB":"1.7","DB":"0.8","Alkphos":"188","Sgpt":"60","Sgot":"84","TP":"5.9","ALB":"3.5","A/G Ratio":"1.4","Selector":"No Liver Disease"},{"Age":"64","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"178","Sgpt":"17","Sgot":"18","TP":"6.3","ALB":"3.1","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"28","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"177","Sgpt":"36","Sgot":"29","TP":"6.9","ALB":"4.1","A/G Ratio":"1.4","Selector":"No Liver Disease"},{"Age":"60","Gender":"Male","TB":"1.8","DB":"0.5","Alkphos":"201","Sgpt":"45","Sgot":"25","TP":"3.9","ALB":"1.7","A/G Ratio":"0.7","Selector":"No Liver Disease"},{"Age":"48","Gender":"Male","TB":"5.8","DB":"2.5","Alkphos":"802","Sgpt":"133","Sgot":"88","TP":"6.0","ALB":"2.8","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"64","Gender":"Male","TB":"3.0","DB":"1.4","Alkphos":"248","Sgpt":"46","Sgot":"40","TP":"6.5","ALB":"3.2","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"58","Gender":"Female","TB":"1.7","DB":"0.8","Alkphos":"1896","Sgpt":"61","Sgot":"83","TP":"8.0","ALB":"3.9","A/G Ratio":"0.95","Selector":"Liver Disease"},{"Age":"45","Gender":"Male","TB":"2.8","DB":"1.7","Alkphos":"263","Sgpt":"57","Sgot":"65","TP":"5.1","ALB":"2.3","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"45","Gender":"Male","TB":"3.2","DB":"1.4","Alkphos":"512","Sgpt":"50","Sgot":"58","TP":"6.0","ALB":"2.7","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"70","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"237","Sgpt":"18","Sgot":"28","TP":"5.8","ALB":"2.5","A/G Ratio":"0.75","Selector":"No Liver Disease"},{"Age":"18","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"199","Sgpt":"34","Sgot":"31","TP":"6.5","ALB":"3.5","A/G Ratio":"1.16","Selector":"No Liver Disease"},{"Age":"53","Gender":"Male","TB":"0.9","DB":"0.4","Alkphos":"238","Sgpt":"17","Sgot":"14","TP":"6.6","ALB":"2.9","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"18","Gender":"Male","TB":"1.8","DB":"0.7","Alkphos":"178","Sgpt":"35","Sgot":"36","TP":"6.8","ALB":"3.6","A/G Ratio":"1.1","Selector":"Liver Disease"},{"Age":"66","Gender":"Male","TB":"11.3","DB":"5.6","Alkphos":"1110","Sgpt":"1250","Sgot":"4929","TP":"7.0","ALB":"2.4","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"46","Gender":"Female","TB":"4.7","DB":"2.2","Alkphos":"310","Sgpt":"62","Sgot":"90","TP":"6.4","ALB":"2.5","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"18","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"282","Sgpt":"72","Sgot":"140","TP":"5.5","ALB":"2.5","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"18","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"282","Sgpt":"72","Sgot":"140","TP":"5.5","ALB":"2.5","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"15","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"380","Sgpt":"25","Sgot":"66","TP":"6.1","ALB":"3.7","A/G Ratio":"1.5","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"186","Sgpt":"20","Sgot":"21","TP":"6.2","ALB":"3.3","A/G Ratio":"1.1","Selector":"No Liver Disease"},{"Age":"66","Gender":"Female","TB":"4.2","DB":"2.1","Alkphos":"159","Sgpt":"15","Sgot":"30","TP":"7.1","ALB":"2.2","A/G Ratio":"0.4","Selector":"Liver Disease"},{"Age":"30","Gender":"Male","TB":"1.6","DB":"0.4","Alkphos":"332","Sgpt":"84","Sgot":"139","TP":"5.6","ALB":"2.7","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"30","Gender":"Male","TB":"1.6","DB":"0.4","Alkphos":"332","Sgpt":"84","Sgot":"139","TP":"5.6","ALB":"2.7","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"45","Gender":"Female","TB":"3.5","DB":"1.5","Alkphos":"189","Sgpt":"63","Sgot":"87","TP":"5.6","ALB":"2.9","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"65","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"201","Sgpt":"18","Sgot":"22","TP":"5.4","ALB":"2.9","A/G Ratio":"1.1","Selector":"No Liver Disease"},{"Age":"66","Gender":"Female","TB":"2.9","DB":"1.3","Alkphos":"168","Sgpt":"21","Sgot":"38","TP":"5.5","ALB":"1.8","A/G Ratio":"0.4","Selector":"Liver Disease"},{"Age":"65","Gender":"Male","TB":"0.7","DB":"0.1","Alkphos":"392","Sgpt":"20","Sgot":"30","TP":"5.3","ALB":"2.8","A/G Ratio":"1.1","Selector":"Liver Disease"},{"Age":"50","Gender":"Male","TB":"0.9","DB":"0.2","Alkphos":"202","Sgpt":"20","Sgot":"26","TP":"7.2","ALB":"4.5","A/G Ratio":"1.66","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"286","Sgpt":"21","Sgot":"27","TP":"7.1","ALB":"4.0","A/G Ratio":"1.2","Selector":"Liver Disease"},{"Age":"56","Gender":"Male","TB":"1.1","DB":"0.5","Alkphos":"180","Sgpt":"30","Sgot":"42","TP":"6.9","ALB":"3.8","A/G Ratio":"1.2","Selector":"No Liver Disease"},{"Age":"50","Gender":"Male","TB":"1.6","DB":"0.8","Alkphos":"218","Sgpt":"18","Sgot":"20","TP":"5.9","ALB":"2.9","A/G Ratio":"0.96","Selector":"Liver Disease"},{"Age":"46","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"182","Sgpt":"20","Sgot":"40","TP":"6.0","ALB":"2.9","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"52","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"178","Sgpt":"26","Sgot":"27","TP":"6.5","ALB":"3.6","A/G Ratio":"1.2","Selector":"No Liver Disease"},{"Age":"34","Gender":"Male","TB":"5.9","DB":"2.5","Alkphos":"290","Sgpt":"45","Sgot":"233","TP":"5.6","ALB":"2.7","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"34","Gender":"Male","TB":"8.7","DB":"4.0","Alkphos":"298","Sgpt":"58","Sgot":"138","TP":"5.8","ALB":"2.4","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"32","Gender":"Male","TB":"0.9","DB":"0.3","Alkphos":"462","Sgpt":"70","Sgot":"82","TP":"6.2","ALB":"3.1","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"72","Gender":"Male","TB":"0.7","DB":"0.1","Alkphos":"196","Sgpt":"20","Sgot":"35","TP":"5.8","ALB":"2.0","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"72","Gender":"Male","TB":"0.7","DB":"0.1","Alkphos":"196","Sgpt":"20","Sgot":"35","TP":"5.8","ALB":"2.0","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"50","Gender":"Male","TB":"1.2","DB":"0.4","Alkphos":"282","Sgpt":"36","Sgot":"32","TP":"7.2","ALB":"3.9","A/G Ratio":"1.1","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"11.0","DB":"4.9","Alkphos":"750","Sgpt":"140","Sgot":"350","TP":"5.5","ALB":"2.1","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"11.5","DB":"5.0","Alkphos":"1050","Sgpt":"99","Sgot":"187","TP":"6.2","ALB":"2.8","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"5.8","DB":"2.7","Alkphos":"599","Sgpt":"43","Sgot":"66","TP":"5.4","ALB":"1.8","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"39","Gender":"Male","TB":"1.9","DB":"0.9","Alkphos":"180","Sgpt":"42","Sgot":"62","TP":"7.4","ALB":"4.3","A/G Ratio":"1.38","Selector":"Liver Disease"},{"Age":"39","Gender":"Male","TB":"1.9","DB":"0.9","Alkphos":"180","Sgpt":"42","Sgot":"62","TP":"7.4","ALB":"4.3","A/G Ratio":"1.38","Selector":"Liver Disease"},{"Age":"48","Gender":"Male","TB":"4.5","DB":"2.3","Alkphos":"282","Sgpt":"13","Sgot":"74","TP":"7.0","ALB":"2.4","A/G Ratio":"0.52","Selector":"Liver Disease"},{"Age":"55","Gender":"Male","TB":"75.0","DB":"3.6","Alkphos":"332","Sgpt":"40","Sgot":"66","TP":"6.2","ALB":"2.5","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"47","Gender":"Female","TB":"3.0","DB":"1.5","Alkphos":"292","Sgpt":"64","Sgot":"67","TP":"5.6","ALB":"1.8","A/G Ratio":"0.47","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"22.8","DB":"12.6","Alkphos":"962","Sgpt":"53","Sgot":"41","TP":"6.9","ALB":"3.3","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"8.9","DB":"4.0","Alkphos":"950","Sgpt":"33","Sgot":"32","TP":"6.8","ALB":"3.1","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"72","Gender":"Male","TB":"1.7","DB":"0.8","Alkphos":"200","Sgpt":"28","Sgot":"37","TP":"6.2","ALB":"3.0","A/G Ratio":"0.93","Selector":"Liver Disease"},{"Age":"44","Gender":"Female","TB":"1.9","DB":"0.6","Alkphos":"298","Sgpt":"378","Sgot":"602","TP":"6.6","ALB":"3.3","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"55","Gender":"Male","TB":"14.1","DB":"7.6","Alkphos":"750","Sgpt":"35","Sgot":"63","TP":"5.0","ALB":"1.6","A/G Ratio":"0.47","Selector":"Liver Disease"},{"Age":"31","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"175","Sgpt":"48","Sgot":"34","TP":"6.0","ALB":"3.7","A/G Ratio":"1.6","Selector":"Liver Disease"},{"Age":"31","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"175","Sgpt":"48","Sgot":"34","TP":"6.0","ALB":"3.7","A/G Ratio":"1.6","Selector":"Liver Disease"},{"Age":"31","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"198","Sgpt":"43","Sgot":"31","TP":"7.3","ALB":"4.0","A/G Ratio":"1.2","Selector":"Liver Disease"},{"Age":"55","Gender":"Male","TB":"0.8","DB":"0.2","Alkphos":"482","Sgpt":"112","Sgot":"99","TP":"5.7","ALB":"2.6","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"75","Gender":"Male","TB":"14.8","DB":"9.0","Alkphos":"1020","Sgpt":"71","Sgot":"42","TP":"5.3","ALB":"2.2","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"75","Gender":"Male","TB":"10.6","DB":"5.0","Alkphos":"562","Sgpt":"37","Sgot":"29","TP":"5.1","ALB":"1.8","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"75","Gender":"Male","TB":"8.0","DB":"4.6","Alkphos":"386","Sgpt":"30","Sgot":"25","TP":"5.5","ALB":"1.8","A/G Ratio":"0.48","Selector":"Liver Disease"},{"Age":"75","Gender":"Male","TB":"2.8","DB":"1.3","Alkphos":"250","Sgpt":"23","Sgot":"29","TP":"2.7","ALB":"0.9","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"75","Gender":"Male","TB":"2.9","DB":"1.3","Alkphos":"218","Sgpt":"33","Sgot":"37","TP":"3.0","ALB":"1.5","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"65","Gender":"Male","TB":"1.9","DB":"0.8","Alkphos":"170","Sgpt":"36","Sgot":"43","TP":"3.8","ALB":"1.4","A/G Ratio":"0.58","Selector":"No Liver Disease"},{"Age":"40","Gender":"Male","TB":"0.6","DB":"0.1","Alkphos":"171","Sgpt":"20","Sgot":"17","TP":"5.4","ALB":"2.5","A/G Ratio":"0.8","Selector":"Liver Disease"},{"Age":"64","Gender":"Male","TB":"1.1","DB":"0.4","Alkphos":"201","Sgpt":"18","Sgot":"19","TP":"6.9","ALB":"4.1","A/G Ratio":"1.4","Selector":"Liver Disease"},{"Age":"38","Gender":"Male","TB":"1.5","DB":"0.4","Alkphos":"298","Sgpt":"60","Sgot":"103","TP":"6.0","ALB":"3.0","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"60","Gender":"Male","TB":"3.2","DB":"1.8","Alkphos":"750","Sgpt":"79","Sgot":"145","TP":"7.8","ALB":"3.2","A/G Ratio":"0.69","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"2.1","DB":"1.0","Alkphos":"191","Sgpt":"114","Sgot":"247","TP":"4.0","ALB":"1.6","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"1.9","DB":"0.8","Alkphos":"614","Sgpt":"42","Sgot":"38","TP":"4.5","ALB":"1.8","A/G Ratio":"0.6","Selector":"Liver Disease"},{"Age":"48","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"218","Sgpt":"32","Sgot":"28","TP":"5.2","ALB":"2.5","A/G Ratio":"0.9","Selector":"No Liver Disease"},{"Age":"60","Gender":"Male","TB":"6.3","DB":"3.2","Alkphos":"314","Sgpt":"118","Sgot":"114","TP":"6.6","ALB":"3.7","A/G Ratio":"1.27","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"5.8","DB":"3.0","Alkphos":"257","Sgpt":"107","Sgot":"104","TP":"6.6","ALB":"3.5","A/G Ratio":"1.12","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"2.3","DB":"0.6","Alkphos":"272","Sgpt":"79","Sgot":"51","TP":"6.6","ALB":"3.5","A/G Ratio":"1.1","Selector":"Liver Disease"},{"Age":"49","Gender":"Male","TB":"1.3","DB":"0.4","Alkphos":"206","Sgpt":"30","Sgot":"25","TP":"6.0","ALB":"3.1","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"49","Gender":"Male","TB":"2.0","DB":"0.6","Alkphos":"209","Sgpt":"48","Sgot":"32","TP":"5.7","ALB":"3.0","A/G Ratio":"1.1","Selector":"No Liver Disease"},{"Age":"60","Gender":"Male","TB":"2.4","DB":"1.0","Alkphos":"1124","Sgpt":"30","Sgot":"54","TP":"5.2","ALB":"1.9","A/G Ratio":"0.5","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"2.0","DB":"1.1","Alkphos":"664","Sgpt":"52","Sgot":"104","TP":"6.0","ALB":"2.1","A/G Ratio":"0.53","Selector":"Liver Disease"},{"Age":"26","Gender":"Female","TB":"0.6","DB":"0.2","Alkphos":"142","Sgpt":"12","Sgot":"32","TP":"5.7","ALB":"2.4","A/G Ratio":"0.75","Selector":"Liver Disease"},{"Age":"41","Gender":"Male","TB":"0.9","DB":"0.2","Alkphos":"169","Sgpt":"22","Sgot":"18","TP":"6.1","ALB":"3.0","A/G Ratio":"0.9","Selector":"No Liver Disease"},{"Age":"32","Gender":"Male","TB":"3.3","DB":"1.2","Alkphos":"299","Sgpt":"56","Sgot":"44","TP":"6.3","ALB":"3.5","A/G Ratio":"1.25","Selector":"Liver Disease"},{"Age":"40","Gender":"Male","TB":"2.2","DB":"1.0","Alkphos":"296","Sgpt":"58","Sgot":"110","TP":"6.0","ALB":"2.8","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"38","Gender":"Male","TB":"4.4","DB":"2.0","Alkphos":"312","Sgpt":"94","Sgot":"192","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"28","Gender":"Male","TB":"2.0","DB":"0.8","Alkphos":"210","Sgpt":"74","Sgot":"52","TP":"7.0","ALB":"3.9","A/G Ratio":"1.25","Selector":"Liver Disease"},{"Age":"52","Gender":"Male","TB":"5.6","DB":"2.8","Alkphos":"448","Sgpt":"44","Sgot":"62","TP":"6.0","ALB":"2.6","A/G Ratio":"0.75","Selector":"Liver Disease"},{"Age":"42","Gender":"Male","TB":"3.8","DB":"1.6","Alkphos":"368","Sgpt":"62","Sgot":"88","TP":"6.2","ALB":"2.9","A/G Ratio":"0.9","Selector":"Liver Disease"},{"Age":"54","Gender":"Male","TB":"1.8","DB":"0.7","Alkphos":"225","Sgpt":"40","Sgot":"68","TP":"6.5","ALB":"3.1","A/G Ratio":"0.95","Selector":"Liver Disease"},{"Age":"46","Gender":"Male","TB":"2.5","DB":"1.1","Alkphos":"302","Sgpt":"88","Sgot":"72","TP":"6.8","ALB":"3.4","A/G Ratio":"1.0","Selector":"Liver Disease"},{"Age":"62","Gender":"Male","TB":"4.2","DB":"2.0","Alkphos":"380","Sgpt":"52","Sgot":"80","TP":"6.0","ALB":"2.8","A/G Ratio":"0.87","Selector":"Liver Disease"},{"Age":"30","Gender":"Female","TB":"1.4","DB":"0.6","Alkphos":"210","Sgpt":"28","Sgot":"22","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"44","Gender":"Male","TB":"1.0","DB":"0.4","Alkphos":"188","Sgpt":"28","Sgot":"32","TP":"6.8","ALB":"3.5","A/G Ratio":"1.1","Selector":"No Liver Disease"},{"Age":"56","Gender":"Male","TB":"2.8","DB":"1.2","Alkphos":"340","Sgpt":"72","Sgot":"96","TP":"6.2","ALB":"2.9","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"50","Gender":"Female","TB":"1.2","DB":"0.4","Alkphos":"196","Sgpt":"22","Sgot":"28","TP":"6.0","ALB":"2.8","A/G Ratio":"0.9","Selector":"No Liver Disease"},{"Age":"36","Gender":"Male","TB":"3.6","DB":"1.4","Alkphos":"260","Sgpt":"66","Sgot":"82","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"58","Gender":"Male","TB":"2.0","DB":"0.9","Alkphos":"208","Sgpt":"48","Sgot":"62","TP":"6.6","ALB":"3.2","A/G Ratio":"0.95","Selector":"Liver Disease"},{"Age":"44","Gender":"Male","TB":"6.5","DB":"3.0","Alkphos":"420","Sgpt":"95","Sgot":"114","TP":"5.8","ALB":"2.5","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"48","Gender":"Male","TB":"1.8","DB":"0.8","Alkphos":"232","Sgpt":"52","Sgot":"78","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"52","Gender":"Male","TB":"2.4","DB":"1.0","Alkphos":"276","Sgpt":"58","Sgot":"80","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"36","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"172","Sgpt":"18","Sgot":"24","TP":"6.2","ALB":"3.0","A/G Ratio":"0.94","Selector":"No Liver Disease"},{"Age":"62","Gender":"Male","TB":"0.7","DB":"0.2","Alkphos":"219","Sgpt":"32","Sgot":"44","TP":"6.8","ALB":"3.6","A/G Ratio":"1.1","Selector":"No Liver Disease"},{"Age":"40","Gender":"Male","TB":"4.0","DB":"1.8","Alkphos":"346","Sgpt":"84","Sgot":"118","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"54","Gender":"Male","TB":"1.4","DB":"0.6","Alkphos":"202","Sgpt":"38","Sgot":"52","TP":"6.8","ALB":"3.4","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"46","Gender":"Female","TB":"2.2","DB":"1.0","Alkphos":"246","Sgpt":"44","Sgot":"56","TP":"5.8","ALB":"2.6","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"58","Gender":"Male","TB":"3.5","DB":"1.6","Alkphos":"320","Sgpt":"78","Sgot":"102","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"66","Gender":"Male","TB":"1.2","DB":"0.5","Alkphos":"188","Sgpt":"24","Sgot":"32","TP":"6.0","ALB":"3.2","A/G Ratio":"1.1","Selector":"No Liver Disease"},{"Age":"42","Gender":"Male","TB":"2.6","DB":"1.1","Alkphos":"280","Sgpt":"60","Sgot":"78","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"30","Gender":"Male","TB":"1.0","DB":"0.3","Alkphos":"192","Sgpt":"42","Sgot":"58","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"56","Gender":"Male","TB":"4.2","DB":"2.0","Alkphos":"360","Sgpt":"88","Sgot":"114","TP":"6.0","ALB":"2.8","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"44","Gender":"Female","TB":"0.9","DB":"0.3","Alkphos":"184","Sgpt":"20","Sgot":"28","TP":"6.2","ALB":"3.0","A/G Ratio":"0.94","Selector":"No Liver Disease"},{"Age":"48","Gender":"Male","TB":"3.0","DB":"1.4","Alkphos":"298","Sgpt":"72","Sgot":"96","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"62","Gender":"Male","TB":"1.6","DB":"0.7","Alkphos":"228","Sgpt":"46","Sgot":"62","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"Liver Disease"},{"Age":"50","Gender":"Male","TB":"2.2","DB":"1.0","Alkphos":"266","Sgpt":"62","Sgot":"84","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"36","Gender":"Male","TB":"1.4","DB":"0.6","Alkphos":"212","Sgpt":"48","Sgot":"64","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"Liver Disease"},{"Age":"52","Gender":"Female","TB":"1.0","DB":"0.4","Alkphos":"188","Sgpt":"24","Sgot":"32","TP":"6.0","ALB":"2.8","A/G Ratio":"0.88","Selector":"No Liver Disease"},{"Age":"58","Gender":"Male","TB":"4.8","DB":"2.2","Alkphos":"380","Sgpt":"94","Sgot":"124","TP":"6.4","ALB":"2.8","A/G Ratio":"0.78","Selector":"Liver Disease"},{"Age":"44","Gender":"Male","TB":"2.0","DB":"0.9","Alkphos":"244","Sgpt":"56","Sgot":"74","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"Liver Disease"},{"Age":"46","Gender":"Male","TB":"3.4","DB":"1.5","Alkphos":"322","Sgpt":"80","Sgot":"108","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"54","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"174","Sgpt":"18","Sgot":"24","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"40","Gender":"Male","TB":"5.2","DB":"2.4","Alkphos":"398","Sgpt":"96","Sgot":"128","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"1.4","DB":"0.6","Alkphos":"218","Sgpt":"46","Sgot":"62","TP":"6.8","ALB":"3.4","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"50","Gender":"Male","TB":"6.0","DB":"2.8","Alkphos":"460","Sgpt":"104","Sgot":"140","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"44","Gender":"Male","TB":"1.6","DB":"0.7","Alkphos":"224","Sgpt":"52","Sgot":"68","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"38","Gender":"Female","TB":"1.2","DB":"0.5","Alkphos":"196","Sgpt":"26","Sgot":"34","TP":"6.2","ALB":"3.0","A/G Ratio":"0.94","Selector":"No Liver Disease"},{"Age":"56","Gender":"Male","TB":"5.0","DB":"2.3","Alkphos":"420","Sgpt":"100","Sgot":"134","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"42","Gender":"Male","TB":"1.2","DB":"0.5","Alkphos":"202","Sgpt":"44","Sgot":"60","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"Liver Disease"},{"Age":"64","Gender":"Male","TB":"2.4","DB":"1.1","Alkphos":"282","Sgpt":"68","Sgot":"92","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"48","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"168","Sgpt":"16","Sgot":"22","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"52","Gender":"Male","TB":"3.6","DB":"1.6","Alkphos":"340","Sgpt":"82","Sgot":"110","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"40","Gender":"Male","TB":"0.8","DB":"0.3","Alkphos":"186","Sgpt":"38","Sgot":"52","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"58","Gender":"Male","TB":"6.4","DB":"3.0","Alkphos":"500","Sgpt":"118","Sgot":"158","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"46","Gender":"Male","TB":"1.0","DB":"0.4","Alkphos":"198","Sgpt":"40","Sgot":"56","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"44","Gender":"Male","TB":"4.6","DB":"2.1","Alkphos":"366","Sgpt":"90","Sgot":"120","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"36","Gender":"Male","TB":"2.0","DB":"0.9","Alkphos":"230","Sgpt":"56","Sgot":"76","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"7.2","DB":"3.4","Alkphos":"560","Sgpt":"128","Sgot":"172","TP":"5.8","ALB":"2.4","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"50","Gender":"Male","TB":"0.7","DB":"0.2","Alkphos":"184","Sgpt":"32","Sgot":"44","TP":"6.8","ALB":"3.6","A/G Ratio":"1.12","Selector":"No Liver Disease"},{"Age":"42","Gender":"Female","TB":"1.6","DB":"0.7","Alkphos":"214","Sgpt":"32","Sgot":"44","TP":"6.2","ALB":"3.0","A/G Ratio":"0.94","Selector":"Liver Disease"},{"Age":"54","Gender":"Male","TB":"4.4","DB":"2.0","Alkphos":"348","Sgpt":"84","Sgot":"112","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"46","Gender":"Male","TB":"1.4","DB":"0.6","Alkphos":"216","Sgpt":"48","Sgot":"64","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"Liver Disease"},{"Age":"38","Gender":"Male","TB":"2.8","DB":"1.2","Alkphos":"272","Sgpt":"68","Sgot":"90","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"62","Gender":"Female","TB":"0.6","DB":"0.2","Alkphos":"162","Sgpt":"14","Sgot":"20","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"48","Gender":"Male","TB":"5.4","DB":"2.5","Alkphos":"440","Sgpt":"106","Sgot":"142","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"40","Gender":"Male","TB":"1.8","DB":"0.8","Alkphos":"228","Sgpt":"52","Sgot":"70","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"56","Gender":"Male","TB":"7.0","DB":"3.3","Alkphos":"540","Sgpt":"124","Sgot":"166","TP":"5.8","ALB":"2.4","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"44","Gender":"Male","TB":"0.6","DB":"0.2","Alkphos":"178","Sgpt":"28","Sgot":"38","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"52","Gender":"Male","TB":"4.0","DB":"1.8","Alkphos":"362","Sgpt":"88","Sgot":"118","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"34","Gender":"Male","TB":"1.6","DB":"0.7","Alkphos":"220","Sgpt":"50","Sgot":"66","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"Liver Disease"},{"Age":"66","Gender":"Male","TB":"8.4","DB":"4.0","Alkphos":"640","Sgpt":"148","Sgot":"198","TP":"5.6","ALB":"2.2","A/G Ratio":"0.64","Selector":"Liver Disease"},{"Age":"42","Gender":"Female","TB":"0.8","DB":"0.2","Alkphos":"178","Sgpt":"20","Sgot":"28","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"50","Gender":"Male","TB":"3.8","DB":"1.7","Alkphos":"316","Sgpt":"76","Sgot":"102","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"38","Gender":"Male","TB":"0.9","DB":"0.3","Alkphos":"194","Sgpt":"40","Sgot":"56","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"60","Gender":"Male","TB":"9.8","DB":"4.6","Alkphos":"720","Sgpt":"166","Sgot":"222","TP":"5.6","ALB":"2.2","A/G Ratio":"0.64","Selector":"Liver Disease"},{"Age":"46","Gender":"Male","TB":"1.2","DB":"0.5","Alkphos":"206","Sgpt":"44","Sgot":"60","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"No Liver Disease"},{"Age":"58","Gender":"Male","TB":"5.6","DB":"2.6","Alkphos":"480","Sgpt":"112","Sgot":"150","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"42","Gender":"Male","TB":"2.2","DB":"1.0","Alkphos":"252","Sgpt":"60","Sgot":"80","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"64","Gender":"Male","TB":"6.8","DB":"3.2","Alkphos":"520","Sgpt":"120","Sgot":"160","TP":"5.8","ALB":"2.4","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"50","Gender":"Male","TB":"1.0","DB":"0.4","Alkphos":"198","Sgpt":"42","Sgot":"56","TP":"6.8","ALB":"3.4","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"44","Gender":"Male","TB":"5.8","DB":"2.7","Alkphos":"460","Sgpt":"108","Sgot":"144","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"38","Gender":"Male","TB":"1.4","DB":"0.6","Alkphos":"210","Sgpt":"48","Sgot":"64","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"62","Gender":"Male","TB":"8.0","DB":"3.8","Alkphos":"620","Sgpt":"144","Sgot":"192","TP":"5.6","ALB":"2.2","A/G Ratio":"0.64","Selector":"Liver Disease"},{"Age":"48","Gender":"Female","TB":"0.6","DB":"0.2","Alkphos":"164","Sgpt":"14","Sgot":"20","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"52","Gender":"Male","TB":"4.4","DB":"2.0","Alkphos":"380","Sgpt":"92","Sgot":"122","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"46","Gender":"Male","TB":"1.8","DB":"0.8","Alkphos":"228","Sgpt":"54","Sgot":"72","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"11.2","DB":"5.2","Alkphos":"860","Sgpt":"198","Sgot":"264","TP":"5.4","ALB":"2.0","A/G Ratio":"0.59","Selector":"Liver Disease"},{"Age":"50","Gender":"Female","TB":"0.8","DB":"0.3","Alkphos":"176","Sgpt":"18","Sgot":"26","TP":"6.2","ALB":"3.0","A/G Ratio":"0.94","Selector":"No Liver Disease"},{"Age":"40","Gender":"Male","TB":"3.2","DB":"1.4","Alkphos":"290","Sgpt":"72","Sgot":"96","TP":"6.4","ALB":"2.8","A/G Ratio":"0.78","Selector":"Liver Disease"},{"Age":"54","Gender":"Male","TB":"1.6","DB":"0.7","Alkphos":"222","Sgpt":"50","Sgot":"66","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"Liver Disease"},{"Age":"46","Gender":"Male","TB":"6.2","DB":"2.9","Alkphos":"500","Sgpt":"116","Sgot":"154","TP":"5.8","ALB":"2.4","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"42","Gender":"Female","TB":"1.0","DB":"0.4","Alkphos":"192","Sgpt":"24","Sgot":"32","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"56","Gender":"Male","TB":"3.0","DB":"1.3","Alkphos":"298","Sgpt":"74","Sgot":"98","TP":"6.4","ALB":"2.8","A/G Ratio":"0.78","Selector":"Liver Disease"},{"Age":"34","Gender":"Male","TB":"0.8","DB":"0.3","Alkphos":"188","Sgpt":"38","Sgot":"52","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"70","Gender":"Male","TB":"9.6","DB":"4.5","Alkphos":"740","Sgpt":"170","Sgot":"228","TP":"5.4","ALB":"2.0","A/G Ratio":"0.59","Selector":"Liver Disease"},{"Age":"44","Gender":"Male","TB":"1.4","DB":"0.6","Alkphos":"216","Sgpt":"50","Sgot":"66","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"No Liver Disease"},{"Age":"54","Gender":"Male","TB":"7.6","DB":"3.6","Alkphos":"580","Sgpt":"134","Sgot":"178","TP":"5.8","ALB":"2.4","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"42","Gender":"Male","TB":"2.4","DB":"1.1","Alkphos":"262","Sgpt":"64","Sgot":"86","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"66","Gender":"Male","TB":"10.8","DB":"5.0","Alkphos":"820","Sgpt":"188","Sgot":"250","TP":"5.4","ALB":"2.0","A/G Ratio":"0.59","Selector":"Liver Disease"},{"Age":"52","Gender":"Female","TB":"0.9","DB":"0.3","Alkphos":"178","Sgpt":"20","Sgot":"28","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"46","Gender":"Male","TB":"4.2","DB":"1.9","Alkphos":"352","Sgpt":"84","Sgot":"112","TP":"6.2","ALB":"2.6","A/G Ratio":"0.72","Selector":"Liver Disease"},{"Age":"38","Gender":"Male","TB":"1.6","DB":"0.7","Alkphos":"218","Sgpt":"52","Sgot":"70","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"62","Gender":"Male","TB":"12.0","DB":"5.6","Alkphos":"940","Sgpt":"216","Sgot":"288","TP":"5.2","ALB":"1.8","A/G Ratio":"0.53","Selector":"Liver Disease"},{"Age":"56","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"160","Sgpt":"16","Sgot":"22","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"50","Gender":"Male","TB":"5.4","DB":"2.5","Alkphos":"440","Sgpt":"102","Sgot":"136","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"44","Gender":"Male","TB":"2.6","DB":"1.2","Alkphos":"278","Sgpt":"66","Sgot":"88","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"68","Gender":"Male","TB":"13.2","DB":"6.2","Alkphos":"1020","Sgpt":"234","Sgot":"312","TP":"5.0","ALB":"1.6","A/G Ratio":"0.47","Selector":"Liver Disease"},{"Age":"54","Gender":"Female","TB":"1.1","DB":"0.4","Alkphos":"190","Sgpt":"22","Sgot":"30","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"48","Gender":"Male","TB":"6.6","DB":"3.1","Alkphos":"520","Sgpt":"120","Sgot":"160","TP":"5.8","ALB":"2.4","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"56","Gender":"Male","TB":"1.2","DB":"0.5","Alkphos":"212","Sgpt":"48","Sgot":"64","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"Liver Disease"},{"Age":"72","Gender":"Male","TB":"14.4","DB":"6.8","Alkphos":"1100","Sgpt":"252","Sgot":"336","TP":"4.8","ALB":"1.4","A/G Ratio":"0.41","Selector":"Liver Disease"},{"Age":"56","Gender":"Female","TB":"0.8","DB":"0.3","Alkphos":"170","Sgpt":"18","Sgot":"26","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"46","Gender":"Male","TB":"8.0","DB":"3.8","Alkphos":"620","Sgpt":"144","Sgot":"192","TP":"5.6","ALB":"2.2","A/G Ratio":"0.64","Selector":"Liver Disease"},{"Age":"54","Gender":"Male","TB":"2.8","DB":"1.2","Alkphos":"296","Sgpt":"72","Sgot":"96","TP":"6.4","ALB":"2.8","A/G Ratio":"0.78","Selector":"Liver Disease"},{"Age":"74","Gender":"Male","TB":"15.6","DB":"7.4","Alkphos":"1200","Sgpt":"276","Sgot":"368","TP":"4.6","ALB":"1.2","A/G Ratio":"0.35","Selector":"Liver Disease"},{"Age":"52","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"162","Sgpt":"14","Sgot":"22","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"60","Gender":"Male","TB":"16.8","DB":"7.9","Alkphos":"1280","Sgpt":"294","Sgot":"392","TP":"4.4","ALB":"1.0","A/G Ratio":"0.29","Selector":"Liver Disease"},{"Age":"48","Gender":"Male","TB":"2.0","DB":"0.9","Alkphos":"242","Sgpt":"58","Sgot":"78","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"56","Gender":"Male","TB":"9.4","DB":"4.4","Alkphos":"720","Sgpt":"166","Sgot":"222","TP":"5.4","ALB":"2.0","A/G Ratio":"0.59","Selector":"Liver Disease"},{"Age":"58","Gender":"Female","TB":"0.6","DB":"0.2","Alkphos":"156","Sgpt":"14","Sgot":"20","TP":"6.8","ALB":"3.6","A/G Ratio":"1.12","Selector":"No Liver Disease"},{"Age":"50","Gender":"Male","TB":"4.8","DB":"2.2","Alkphos":"400","Sgpt":"96","Sgot":"128","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"42","Gender":"Male","TB":"1.0","DB":"0.4","Alkphos":"198","Sgpt":"44","Sgot":"60","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"No Liver Disease"},{"Age":"62","Gender":"Male","TB":"10.0","DB":"4.7","Alkphos":"780","Sgpt":"180","Sgot":"240","TP":"5.2","ALB":"1.8","A/G Ratio":"0.53","Selector":"Liver Disease"},{"Age":"52","Gender":"Male","TB":"2.6","DB":"1.2","Alkphos":"278","Sgpt":"66","Sgot":"88","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"64","Gender":"Male","TB":"11.6","DB":"5.5","Alkphos":"900","Sgpt":"208","Sgot":"278","TP":"5.0","ALB":"1.6","A/G Ratio":"0.47","Selector":"Liver Disease"},{"Age":"60","Gender":"Female","TB":"0.8","DB":"0.3","Alkphos":"178","Sgpt":"18","Sgot":"26","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"54","Gender":"Male","TB":"6.0","DB":"2.8","Alkphos":"480","Sgpt":"112","Sgot":"150","TP":"5.8","ALB":"2.4","A/G Ratio":"0.7","Selector":"Liver Disease"},{"Age":"46","Gender":"Male","TB":"0.8","DB":"0.3","Alkphos":"190","Sgpt":"40","Sgot":"54","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"58","Gender":"Male","TB":"13.2","DB":"6.2","Alkphos":"1000","Sgpt":"230","Sgot":"308","TP":"5.0","ALB":"1.6","A/G Ratio":"0.47","Selector":"Liver Disease"},{"Age":"48","Gender":"Male","TB":"2.4","DB":"1.1","Alkphos":"264","Sgpt":"64","Sgot":"86","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"44","Gender":"Male","TB":"8.8","DB":"4.2","Alkphos":"680","Sgpt":"158","Sgot":"212","TP":"5.6","ALB":"2.2","A/G Ratio":"0.64","Selector":"Liver Disease"},{"Age":"62","Gender":"Female","TB":"0.9","DB":"0.3","Alkphos":"186","Sgpt":"20","Sgot":"28","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"52","Gender":"Male","TB":"7.2","DB":"3.4","Alkphos":"560","Sgpt":"130","Sgot":"174","TP":"5.6","ALB":"2.2","A/G Ratio":"0.64","Selector":"Liver Disease"},{"Age":"40","Gender":"Male","TB":"2.0","DB":"0.9","Alkphos":"240","Sgpt":"58","Sgot":"78","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"66","Gender":"Male","TB":"14.0","DB":"6.6","Alkphos":"1080","Sgpt":"248","Sgot":"332","TP":"4.8","ALB":"1.4","A/G Ratio":"0.41","Selector":"Liver Disease"},{"Age":"56","Gender":"Male","TB":"0.6","DB":"0.2","Alkphos":"172","Sgpt":"30","Sgot":"42","TP":"6.8","ALB":"3.6","A/G Ratio":"1.12","Selector":"No Liver Disease"},{"Age":"48","Gender":"Male","TB":"5.0","DB":"2.3","Alkphos":"420","Sgpt":"98","Sgot":"130","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"38","Gender":"Male","TB":"1.0","DB":"0.4","Alkphos":"196","Sgpt":"42","Sgot":"58","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"70","Gender":"Male","TB":"15.2","DB":"7.2","Alkphos":"1160","Sgpt":"266","Sgot":"356","TP":"4.6","ALB":"1.2","A/G Ratio":"0.35","Selector":"Liver Disease"},{"Age":"58","Gender":"Male","TB":"2.2","DB":"1.0","Alkphos":"256","Sgpt":"62","Sgot":"84","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"54","Gender":"Male","TB":"10.4","DB":"4.9","Alkphos":"800","Sgpt":"184","Sgot":"246","TP":"5.2","ALB":"1.8","A/G Ratio":"0.53","Selector":"Liver Disease"},{"Age":"62","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"168","Sgpt":"16","Sgot":"24","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"46","Gender":"Male","TB":"6.8","DB":"3.2","Alkphos":"540","Sgpt":"126","Sgot":"168","TP":"5.6","ALB":"2.2","A/G Ratio":"0.64","Selector":"Liver Disease"},{"Age":"40","Gender":"Male","TB":"0.7","DB":"0.3","Alkphos":"186","Sgpt":"38","Sgot":"52","TP":"6.6","ALB":"3.4","A/G Ratio":"1.06","Selector":"No Liver Disease"},{"Age":"56","Gender":"Male","TB":"11.8","DB":"5.6","Alkphos":"920","Sgpt":"212","Sgot":"284","TP":"5.0","ALB":"1.6","A/G Ratio":"0.47","Selector":"Liver Disease"},{"Age":"50","Gender":"Male","TB":"2.8","DB":"1.3","Alkphos":"292","Sgpt":"70","Sgot":"94","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"42","Gender":"Male","TB":"4.8","DB":"2.2","Alkphos":"400","Sgpt":"96","Sgot":"128","TP":"6.0","ALB":"2.6","A/G Ratio":"0.76","Selector":"Liver Disease"},{"Age":"60","Gender":"Female","TB":"0.9","DB":"0.3","Alkphos":"188","Sgpt":"20","Sgot":"28","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"62","Gender":"Male","TB":"14.8","DB":"7.0","Alkphos":"1140","Sgpt":"262","Sgot":"350","TP":"4.8","ALB":"1.4","A/G Ratio":"0.41","Selector":"Liver Disease"},{"Age":"52","Gender":"Male","TB":"3.4","DB":"1.5","Alkphos":"320","Sgpt":"78","Sgot":"104","TP":"6.2","ALB":"2.8","A/G Ratio":"0.82","Selector":"Liver Disease"},{"Age":"44","Gender":"Male","TB":"10.0","DB":"4.7","Alkphos":"780","Sgpt":"180","Sgot":"240","TP":"5.4","ALB":"2.0","A/G Ratio":"0.59","Selector":"Liver Disease"},{"Age":"58","Gender":"Female","TB":"0.8","DB":"0.3","Alkphos":"178","Sgpt":"20","Sgot":"28","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"48","Gender":"Male","TB":"7.6","DB":"3.6","Alkphos":"600","Sgpt":"140","Sgot":"188","TP":"5.6","ALB":"2.2","A/G Ratio":"0.64","Selector":"Liver Disease"},{"Age":"38","Gender":"Male","TB":"1.2","DB":"0.5","Alkphos":"200","Sgpt":"44","Sgot":"60","TP":"6.6","ALB":"3.2","A/G Ratio":"0.94","Selector":"Liver Disease"},{"Age":"64","Gender":"Male","TB":"16.4","DB":"7.7","Alkphos":"1240","Sgpt":"284","Sgot":"380","TP":"4.6","ALB":"1.2","A/G Ratio":"0.35","Selector":"Liver Disease"},{"Age":"56","Gender":"Female","TB":"0.9","DB":"0.3","Alkphos":"174","Sgpt":"18","Sgot":"26","TP":"6.4","ALB":"3.2","A/G Ratio":"1.0","Selector":"No Liver Disease"},{"Age":"50","Gender":"Male","TB":"8.8","DB":"4.2","Alkphos":"680","Sgpt":"158","Sgot":"212","TP":"5.6","ALB":"2.2","A/G Ratio":"0.64","Selector":"Liver Disease"},{"Age":"42","Gender":"Male","TB":"1.8","DB":"0.8","Alkphos":"228","Sgpt":"54","Sgot":"72","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"60","Gender":"Male","TB":"18.0","DB":"8.5","Alkphos":"1380","Sgpt":"316","Sgot":"422","TP":"4.2","ALB":"0.8","A/G Ratio":"0.24","Selector":"Liver Disease"},{"Age":"64","Gender":"Female","TB":"0.7","DB":"0.2","Alkphos":"164","Sgpt":"16","Sgot":"24","TP":"6.8","ALB":"3.6","A/G Ratio":"1.12","Selector":"No Liver Disease"},{"Age":"54","Gender":"Male","TB":"9.2","DB":"4.3","Alkphos":"700","Sgpt":"162","Sgot":"216","TP":"5.4","ALB":"2.0","A/G Ratio":"0.59","Selector":"Liver Disease"},{"Age":"46","Gender":"Male","TB":"2.4","DB":"1.1","Alkphos":"264","Sgpt":"64","Sgot":"86","TP":"6.4","ALB":"3.0","A/G Ratio":"0.88","Selector":"Liver Disease"},{"Age":"66","Gender":"Male","TB":"19.2","DB":"9.0","Alkphos":"1460","Sgpt":"334","Sgot":"446","TP":"4.0","ALB":"0.6","A/G Ratio":"0.18","Selector":"Liver Disease"}];
+
+// ===== STATE =====
+let filtered = [...RAW_DATA];
+let tbFilter = 'all';
+let charts = {};
+
+function getAgeGroup(age) {
+  const a = parseInt(age);
+  if (a <= 20) return '0-20';
+  if (a <= 40) return '21-40';
+  if (a <= 60) return '41-60';
+  return '61+';
+}
+
+function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+
+// ===== FILTERS =====
+function setTBFilter(v, btn) {
+  tbFilter = v;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function resetFilters() {
+  document.getElementById('filterDiagnosis').value = 'all';
+  document.getElementById('filterGender').value = 'all';
+  document.getElementById('filterAge').value = 'all';
+  document.getElementById('searchInput').value = '';
+  tbFilter = 'all';
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tbAll').classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const diag = document.getElementById('filterDiagnosis').value;
+  const gender = document.getElementById('filterGender').value;
+  const age = document.getElementById('filterAge').value;
+  const search = document.getElementById('searchInput').value.toLowerCase();
+
+  filtered = RAW_DATA.filter(r => {
+    if (diag !== 'all' && r.Selector !== diag) return false;
+    if (gender !== 'all' && r.Gender !== gender) return false;
+    if (age !== 'all' && getAgeGroup(r.Age) !== age) return false;
+    if (tbFilter === 'normal' && parseFloat(r.TB) >= 1.2) return false;
+    if (tbFilter === 'elevated' && parseFloat(r.TB) < 1.2) return false;
+    if (search) {
+      const s = Object.values(r).join(' ').toLowerCase();
+      if (!s.includes(search)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('resultsCount').innerHTML = `<strong>${filtered.length}</strong> patients shown`;
+  updateAll();
+}
+
+// ===== UPDATE ALL =====
+function updateAll() {
+  updateKPIs();
+  updateDiagnosisChart();
+  updateGenderChart();
+  updateAgeGroupChart();
+  updateEnzymesChart();
+  updateBilirubinChart();
+  updateAlkphosChart();
+  updateProteinChart();
+  updateHeatmap();
+  updateTable();
+}
+
+// ===== KPIs =====
+function updateKPIs() {
+  const total = filtered.length;
+  const disease = filtered.filter(r => r.Selector === 'Liver Disease').length;
+  const healthy = total - disease;
+  const ages = filtered.map(r => parseInt(r.Age));
+  const avgAge = avg(ages).toFixed(1);
+  const albs = filtered.map(r => parseFloat(r.ALB)).filter(v => !isNaN(v));
+  const avgAlb = avg(albs).toFixed(2);
+
+  document.getElementById('kpiTotal').textContent = total;
+  document.getElementById('kpiDisease').textContent = disease;
+  document.getElementById('kpiDiseaseRate').textContent = `${((disease/total)*100).toFixed(1)}% prevalence`;
+  document.getElementById('kpiHealthy').textContent = healthy;
+  document.getElementById('kpiHealthyRate').textContent = `${((healthy/total)*100).toFixed(1)}% of total`;
+  document.getElementById('kpiAge').textContent = avgAge;
+  document.getElementById('kpiAgeRange').textContent = `Range: ${Math.min(...ages)} – ${Math.max(...ages)}`;
+  document.getElementById('kpiAlb').textContent = avgAlb;
+}
+
+// ===== CHART HELPERS =====
+const COLORS = {
+  blue: '#2563EB', blueAlpha: 'rgba(37,99,235,0.12)',
+  red: '#DC2626', redAlpha: 'rgba(220,38,38,0.12)',
+  green: '#059669', greenAlpha: 'rgba(5,150,105,0.12)',
+  amber: '#D97706', amberAlpha: 'rgba(217,119,6,0.12)',
+  purple: '#7C3AED', purpleAlpha: 'rgba(124,58,237,0.12)',
+  pink: '#EC4899', pinkAlpha: 'rgba(236,72,153,0.12)',
+  teal: '#0D9488', tealAlpha: 'rgba(13,148,136,0.12)',
+  orange: '#EA580C', orangeAlpha: 'rgba(234,88,12,0.12)',
+};
+
+const BASE_OPTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#111827',
+      titleColor: '#fff', bodyColor: '#CBD5E1',
+      padding: 10, cornerRadius: 8,
+      titleFont: { family: 'DM Sans', size: 12, weight: '600' },
+      bodyFont: { family: 'DM Sans', size: 11 }
+    }
+  }
+};
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ===== DIAGNOSIS DONUT =====
+function updateDiagnosisChart() {
+  destroyChart('diag');
+  const dis = filtered.filter(r => r.Selector === 'Liver Disease').length;
+  const no = filtered.length - dis;
+  const pct = filtered.length ? ((dis/filtered.length)*100).toFixed(1) : 0;
+  document.getElementById('donutValue').textContent = pct + '%';
+
+  charts['diag'] = new Chart(document.getElementById('chartDiagnosis'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [dis, no],
+        backgroundColor: [COLORS.red, COLORS.green],
+        borderWidth: 3, borderColor: '#fff',
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      ...BASE_OPTS,
+      cutout: '68%',
+      plugins: { ...BASE_OPTS.plugins, tooltip: { ...BASE_OPTS.plugins.tooltip,
+        callbacks: { label: (c) => ` ${c.label || (c.dataIndex===0?'Liver Disease':'No Disease')}: ${c.raw} (${((c.raw/filtered.length)*100).toFixed(1)}%)` }
+      }}
+    }
+  });
+}
+
+// ===== GENDER DONUT =====
+function updateGenderChart() {
+  destroyChart('gender');
+  const males = filtered.filter(r => r.Gender === 'Male').length;
+  const females = filtered.length - males;
+  const pct = filtered.length ? ((males/filtered.length)*100).toFixed(1) : 0;
+  document.getElementById('genderDonutValue').textContent = pct + '%';
+
+  charts['gender'] = new Chart(document.getElementById('chartGender'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [males, females],
+        backgroundColor: [COLORS.blue, COLORS.pink],
+        borderWidth: 3, borderColor: '#fff', hoverOffset: 6
+      }]
+    },
+    options: {
+      ...BASE_OPTS,
+      cutout: '68%',
+      plugins: { ...BASE_OPTS.plugins, tooltip: { ...BASE_OPTS.plugins.tooltip,
+        callbacks: { label: (c) => ` ${c.dataIndex===0?'Male':'Female'}: ${c.raw}` }
+      }}
+    }
+  });
+}
+
+// ===== AGE GROUP BAR =====
+function updateAgeGroupChart() {
+  destroyChart('ageGroup');
+  const groups = ['0-20','21-40','41-60','61+'];
+  const counts = groups.map(g => filtered.filter(r => getAgeGroup(r.Age) === g).length);
+
+  charts['ageGroup'] = new Chart(document.getElementById('chartAgeGroup'), {
+    type: 'bar',
+    data: {
+      labels: groups,
+      datasets: [{
+        data: counts,
+        backgroundColor: [COLORS.purple, COLORS.blue, COLORS.teal, COLORS.amber],
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      ...BASE_OPTS,
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#94A3B8' } },
+        y: { grid: { color: '#F1F5F9' }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#94A3B8' }, border: { display: false } }
+      }
+    }
+  });
+}
+
+// ===== ENZYMES =====
+function updateEnzymesChart() {
+  destroyChart('enzymes');
+  const groups = ['0-20','21-40','41-60','61+'];
+  const diseaseData = groups.map(g => {
+    const sub = filtered.filter(r => getAgeGroup(r.Age) === g && r.Selector === 'Liver Disease');
+    return sub.length ? avg(sub.map(r => parseFloat(r.Sgpt))).toFixed(0) : 0;
+  });
+  const healthyData = groups.map(g => {
+    const sub = filtered.filter(r => getAgeGroup(r.Age) === g && r.Selector !== 'Liver Disease');
+    return sub.length ? avg(sub.map(r => parseFloat(r.Sgpt))).toFixed(0) : 0;
+  });
+
+  charts['enzymes'] = new Chart(document.getElementById('chartEnzymes'), {
+    type: 'bar',
+    data: {
+      labels: groups,
+      datasets: [
+        { label: 'SGPT – Disease', data: diseaseData, backgroundColor: COLORS.redAlpha, borderColor: COLORS.red, borderWidth: 2, borderRadius: 5 },
+        { label: 'SGPT – Healthy', data: healthyData, backgroundColor: COLORS.greenAlpha, borderColor: COLORS.green, borderWidth: 2, borderRadius: 5 }
+      ]
+    },
+    options: {
+      ...BASE_OPTS,
+      plugins: { ...BASE_OPTS.plugins, legend: { display: true, position: 'top', labels: { font: { family:'DM Sans', size:11 }, color:'#5A6A85', boxWidth:10, padding:14 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family:'DM Sans', size:11 }, color:'#94A3B8' } },
+        y: { grid: { color:'#F1F5F9' }, ticks: { font: { family:'DM Sans', size:11 }, color:'#94A3B8' }, border: { display: false } }
+      }
+    }
+  });
+}
+
+// ===== BILIRUBIN LINE =====
+function updateBilirubinChart() {
+  destroyChart('bili');
+  const groups = ['0-20','21-40','41-60','61+'];
+  const tbVals = groups.map(g => {
+    const sub = filtered.filter(r => getAgeGroup(r.Age) === g);
+    return sub.length ? +avg(sub.map(r=>parseFloat(r.TB))).toFixed(2) : 0;
+  });
+  const dbVals = groups.map(g => {
+    const sub = filtered.filter(r => getAgeGroup(r.Age) === g);
+    return sub.length ? +avg(sub.map(r=>parseFloat(r.DB))).toFixed(2) : 0;
+  });
+
+  charts['bili'] = new Chart(document.getElementById('chartBilirubin'), {
+    type: 'line',
+    data: {
+      labels: groups,
+      datasets: [
+        { label: 'Total Bilirubin', data: tbVals, borderColor: COLORS.orange, backgroundColor: COLORS.orangeAlpha, fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: COLORS.orange },
+        { label: 'Direct Bilirubin', data: dbVals, borderColor: COLORS.amber, backgroundColor: COLORS.amberAlpha, fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: COLORS.amber }
+      ]
+    },
+    options: {
+      ...BASE_OPTS,
+      plugins: { ...BASE_OPTS.plugins, legend: { display: true, position: 'top', labels: { font: { family:'DM Sans', size:11 }, color:'#5A6A85', boxWidth:10, padding:14 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family:'DM Sans', size:11 }, color:'#94A3B8' } },
+        y: { grid: { color:'#F1F5F9' }, ticks: { font: { family:'DM Sans', size:11 }, color:'#94A3B8' }, border: { display: false } }
+      }
+    }
+  });
+}
+
+// ===== ALKPHOS =====
+function updateAlkphosChart() {
+  destroyChart('alkph');
+  const groups = ['0-20','21-40','41-60','61+'];
+  const dVals = groups.map(g => {
+    const sub = filtered.filter(r => getAgeGroup(r.Age)===g && r.Selector==='Liver Disease');
+    return sub.length ? +avg(sub.map(r=>parseFloat(r.Alkphos))).toFixed(0) : 0;
+  });
+  const hVals = groups.map(g => {
+    const sub = filtered.filter(r => getAgeGroup(r.Age)===g && r.Selector!=='Liver Disease');
+    return sub.length ? +avg(sub.map(r=>parseFloat(r.Alkphos))).toFixed(0) : 0;
+  });
+
+  charts['alkph'] = new Chart(document.getElementById('chartAlkphos'), {
+    type: 'bar',
+    data: {
+      labels: groups,
+      datasets: [
+        { label: 'Liver Disease', data: dVals, backgroundColor: 'rgba(220,38,38,0.18)', borderColor: COLORS.red, borderWidth: 2, borderRadius: 5 },
+        { label: 'No Disease', data: hVals, backgroundColor: 'rgba(5,150,105,0.18)', borderColor: COLORS.green, borderWidth: 2, borderRadius: 5 }
+      ]
+    },
+    options: {
+      ...BASE_OPTS,
+      plugins: { ...BASE_OPTS.plugins, legend: { display: true, position: 'top', labels: { font: { family:'DM Sans', size:11 }, color:'#5A6A85', boxWidth:10, padding:14 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family:'DM Sans', size:11 }, color:'#94A3B8' } },
+        y: { grid: { color:'#F1F5F9' }, ticks: { font: { family:'DM Sans', size:11 }, color:'#94A3B8' }, border: { display: false } }
+      }
+    }
+  });
+}
+
+// ===== PROTEIN =====
+function updateProteinChart() {
+  destroyChart('prot');
+  const labels = ['Liver Disease', 'No Disease'];
+  const tpVals = labels.map((l,i) => {
+    const sub = filtered.filter(r => i===0 ? r.Selector==='Liver Disease' : r.Selector!=='Liver Disease');
+    return sub.length ? +avg(sub.map(r=>parseFloat(r.TP))).toFixed(2) : 0;
+  });
+  const albVals = labels.map((l,i) => {
+    const sub = filtered.filter(r => i===0 ? r.Selector==='Liver Disease' : r.Selector!=='Liver Disease');
+    return sub.length ? +avg(sub.map(r=>parseFloat(r.ALB))).toFixed(2) : 0;
+  });
+
+  charts['prot'] = new Chart(document.getElementById('chartProtein'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Protein (TP)', data: tpVals, backgroundColor: [COLORS.redAlpha, COLORS.greenAlpha], borderColor: [COLORS.red, COLORS.green], borderWidth: 2, borderRadius: 8 },
+        { label: 'Albumin (ALB)', data: albVals, backgroundColor: [COLORS.purpleAlpha, COLORS.blueAlpha], borderColor: [COLORS.purple, COLORS.blue], borderWidth: 2, borderRadius: 8 }
+      ]
+    },
+    options: {
+      ...BASE_OPTS,
+      plugins: { ...BASE_OPTS.plugins, legend: { display: true, position: 'top', labels: { font: { family:'DM Sans', size:11 }, color:'#5A6A85', boxWidth:10, padding:14 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family:'DM Sans', size:11 }, color:'#94A3B8' } },
+        y: { grid: { color:'#F1F5F9' }, ticks: { font: { family:'DM Sans', size:11 }, color:'#94A3B8' }, border: { display: false } },
+      }
+    }
+  });
+}
+
+// ===== HEATMAP =====
+function updateHeatmap() {
+  const container = document.getElementById('heatmapContainer');
+  const groups = ['0-20','21-40','41-60','61+'];
+  const genders = ['Male','Female'];
+
+  // Build data
+  const data = {};
+  genders.forEach(g => {
+    data[g] = {};
+    groups.forEach(ag => {
+      const sub = filtered.filter(r => r.Gender===g && getAgeGroup(r.Age)===ag);
+      const dis = sub.filter(r => r.Selector==='Liver Disease').length;
+      data[g][ag] = sub.length ? (dis/sub.length)*100 : null;
+    });
+  });
+
+  function heatColor(pct) {
+    if (pct === null) return '#F4F6FB';
+    if (pct >= 80) return '#FEE2E2';
+    if (pct >= 65) return '#FEF3C7';
+    if (pct >= 50) return '#FEF9C3';
+    return '#ECFDF5';
+  }
+  function heatText(pct) {
+    if (pct >= 80) return '#991B1B';
+    if (pct >= 65) return '#92400E';
+    if (pct >= 50) return '#713F12';
+    return '#065F46';
+  }
+
+  let html = `<div></div>`;
+  groups.forEach(g => {
+    html += `<div style="text-align:center;font-size:11px;font-weight:700;color:var(--text-muted)">${g}</div>`;
+  });
+
+  genders.forEach(gender => {
+    html += `<div style="font-size:12px;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;">${gender}</div>`;
+    groups.forEach(ag => {
+      const pct = data[gender][ag];
+      const n = filtered.filter(r=>r.Gender===gender && getAgeGroup(r.Age)===ag).length;
+      html += `<div style="background:${heatColor(pct)};border-radius:10px;padding:14px 8px;text-align:center;border:1px solid var(--border);">
+        <div style="font-size:18px;font-weight:700;color:${heatText(pct)}">${pct !== null ? pct.toFixed(0)+'%' : '—'}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:3px;">${n} patients</div>
+      </div>`;
+    });
+  });
+
+  container.innerHTML = html;
+}
+
+// ===== TABLE =====
+function updateTable() {
+  const tbody = document.getElementById('tableBody');
+  const rows = filtered.slice(0, 20);
+  tbody.innerHTML = rows.map((r, i) => `
+    <tr>
+      <td class="mono" style="color:var(--text-muted)">${i+1}</td>
+      <td><strong>${r.Age}</strong></td>
+      <td>${r.Gender}</td>
+      <td class="mono">${r.TB}</td>
+      <td class="mono">${r.DB}</td>
+      <td class="mono">${r.Alkphos}</td>
+      <td class="mono">${r.Sgpt}</td>
+      <td class="mono">${r.Sgot}</td>
+      <td class="mono">${r.TP}</td>
+      <td class="mono">${r.ALB}</td>
+      <td class="mono">${r['A/G Ratio']}</td>
+      <td><span class="status-pill ${r.Selector==='Liver Disease'?'disease':'healthy'}">${r.Selector==='Liver Disease'?'⚠ Disease':'✓ Healthy'}</span></td>
+    </tr>
+  `).join('');
+}
+
+// ===== EXPORT =====
+function exportData() {
+  const headers = Object.keys(filtered[0]).join(',');
+  const rows = filtered.map(r => Object.values(r).join(',')).join('\n');
+  const blob = new Blob([headers+'\n'+rows], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'liver_filtered_data.csv';
+  a.click();
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  updateAll();
+});
+</script>
+</body>
+</html>
